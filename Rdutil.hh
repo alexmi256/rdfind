@@ -91,7 +91,8 @@ public:
                     enum Fileinfo::readtobuffermode lasttype,
                     long nsecsleep,
                     std::size_t buffersize,
-                    int partialchecksum);
+                    int partialchecksum,
+                    void (*debugProgress)(int, int) = NULL);
 
   /// make symlinks of duplicates.
   std::size_t makesymlinks(bool dryrun) const;
