@@ -1,5 +1,6 @@
 .cproject
 .project
+.idea
 .deps
 *.o
 Makefile
@@ -7,7 +8,7 @@ Makefile.in
 aclocal*
 autom4te*
 config.h
-./config.h.in
+config.h.in
 config.log
 config.status
 configure

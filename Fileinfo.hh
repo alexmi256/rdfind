@@ -50,6 +50,7 @@ public:
     CREATE_SHA256_CHECKSUM,
     CREATE_SHA512_CHECKSUM,
     CREATE_XXH128_CHECKSUM,
+    CREATE_MD5_PARTIAL_CHECKSUM
   };
 
   // type of duplicate
@@ -199,7 +200,7 @@ private:
    */
   std::int64_t m_identity;
 
-  static constexpr int SomeByteSize = 64;
+  static constexpr int SomeByteSize = 16;
 
   /// a buffer that will be filled with some bytes of the file or a hash
   std::array<char, SomeByteSize> m_somebytes;

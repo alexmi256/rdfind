@@ -49,17 +49,39 @@ Fileinfo::fillwithbytes(enum readtobuffermode filltype,
     return -1;
   }
 
+  // Define the maximum bytes to hash
+  const std::size_t MAX_BYTES_TO_HASH = 1024 * 1024 * 1; // 1,024,000 bytes (approx 1 MiB)
+  std::size_t bytes_to_hash = std::min(static_cast<std::size_t>(size()), MAX_BYTES_TO_HASH);
+
+  // Read and hash the relevant bytes
+  Checksum partial_chk(Checksum::checksumtypes::MD5);
+  std::size_t bytes_remaining = bytes_to_hash;
+
   auto checksumtype = Checksum::checksumtypes::NOTSET;
   // read some bytes
   switch (filltype) {
     case readtobuffermode::READ_FIRST_BYTES:
-      // read at start of file
-      f1.read(m_somebytes.data(), SomeByteSize);
+      // Read first bytes_to_hash bytes
+      while (bytes_remaining > 0 && f1) {
+        std::size_t to_read = std::min(bytes_remaining, buffer.size());
+        f1.read(buffer.data(), static_cast<std::streamsize>(to_read));
+        partial_chk.update(static_cast<std::size_t>(f1.gcount()), buffer.data());
+        bytes_remaining -= f1.gcount();
+      }
+      partial_chk.printToBuffer(m_somebytes.data(), m_somebytes.size());
       break;
     case readtobuffermode::READ_LAST_BYTES:
-      // read at end of file
-      f1.seekg(-SomeByteSize, std::ios_base::end);
-      f1.read(m_somebytes.data(), SomeByteSize);
+      // Read last bytes_to_hash bytes
+      if (size() > bytes_to_hash) {
+        f1.seekg(-static_cast<std::streamoff>(bytes_to_hash), std::ios_base::end);
+      }
+      while (bytes_remaining > 0 && f1) {
+        std::size_t to_read = std::min(bytes_remaining, buffer.size());
+        f1.read(buffer.data(), static_cast<std::streamsize>(to_read));
+        partial_chk.update(static_cast<std::size_t>(f1.gcount()), buffer.data());
+        bytes_remaining -= f1.gcount();
+      }
+      partial_chk.printToBuffer(m_somebytes.data(), m_somebytes.size());
       break;
     case readtobuffermode::CREATE_MD5_CHECKSUM:
       checksumtype = Checksum::checksumtypes::MD5;
