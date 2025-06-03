@@ -8,6 +8,7 @@ aclocal*
 autom4te*
 config.h
 ./config.h.in
+config.h.in
 config.log
 config.status
 configure
@@ -17,9 +18,11 @@ missing
 rdfind
 stamp-h1
 *~
+.idea
 
 compile
 test-driver
 nettle32bit/
 *.log
 rdfind-*.tar.gz
+results.txt

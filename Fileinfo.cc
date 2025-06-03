@@ -25,7 +25,8 @@
 int
 Fileinfo::fillwithbytes(enum readtobuffermode filltype,
                         enum readtobuffermode lasttype,
-                        std::vector<char>& buffer)
+                        std::vector<char>& buffer,
+                        int partialchecksum)
 {
 
   // Decide if we are going to read from file or not.
@@ -84,10 +85,39 @@ Fileinfo::fillwithbytes(enum readtobuffermode filltype,
   if (checksumtype != Checksum::checksumtypes::NOTSET) {
     Checksum chk(checksumtype);
 
-    while (f1) {
-      f1.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
-      // gcount is never negative, the cast is safe.
-      chk.update(static_cast<std::size_t>(f1.gcount()), buffer.data());
+    const std::size_t max_bytes = 1024 * 1024 * partialchecksum;
+    const std::size_t file_size = size();
+
+    if (partialchecksum > 0 && file_size > 2 * max_bytes) {
+      // Read first amount of MiB
+      std::size_t bytes_read = 0;
+      while (bytes_read < max_bytes && f1) {
+        f1.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+        std::streamsize count = f1.gcount();
+        chk.update(static_cast<std::size_t>(count), buffer.data());
+        bytes_read += count;
+      }
+
+      // Seek to last amount of MiB
+      f1.clear(); // Clear any EOF flags
+      f1.seekg(static_cast<std::streamoff>(file_size - max_bytes),
+               std::ios::beg);
+
+      // Read last amount of MiB
+      bytes_read = 0;
+      while (bytes_read < max_bytes && f1) {
+        f1.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+        std::streamsize count = f1.gcount();
+        chk.update(static_cast<std::size_t>(count), buffer.data());
+        bytes_read += count;
+      }
+    } else {
+      // Original behavior: read entire file
+      while (f1) {
+        f1.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+        // gcount is never negative, the cast is safe.
+        chk.update(static_cast<std::size_t>(f1.gcount()), buffer.data());
+      }
     }
 
     // store the result of the checksum calculation in somebytes
