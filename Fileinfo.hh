@@ -139,11 +139,14 @@ public:
    * @param lasttype
    * @param buffer will be used as a scratch buffer - provided from the outside
    * to avoid having to reallocate it for each file
+   * @param partialchecksum when filltype is a CREATE_XXX_CHECKSUM type then
+   * only hash the first and last N MiB of the file skipping contents inbetween
    * @return zero on success
    */
   int fillwithbytes(enum readtobuffermode filltype,
                     enum readtobuffermode lasttype,
-                    std::vector<char>& buffer);
+                    std::vector<char>& buffer,
+                    int partialchecksum);
 
   /// get a pointer to the bytes read from the file
   const char* getbyteptr() const { return m_somebytes.data(); }

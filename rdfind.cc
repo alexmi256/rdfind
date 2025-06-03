@@ -69,6 +69,9 @@ usage()
     << " -buffersize N\n"
     << indent << "chunksize in bytes when calculating the checksum.\n"
     << indent << "The default is 1 MiB, can be up to 128 MiB.\n"
+    << " -partialchecksum  (N=0)          number of MiB to checksum from the "
+       "start and end of a file instead of hashing the whole file.\n"
+    << indent << "Zero means hash the whole file. 1 would be 2MiB hashed\n"
     << " -deterministic    (true)| false  makes results independent of order\n"
     << "                                  from listing the filesystem\n"
     << " -makesymlinks      true |(false) replace duplicate files with "
@@ -109,6 +112,7 @@ struct Options
   bool followsymlinks = false;        // follow symlinks
   bool dryrun = false;                // only dryrun, don't destroy anything
   bool remove_identical_inode = true; // remove files with identical inodes
+  int partialchecksum = 0;   // compute checksum for only part of the file
   bool usemd5 = false;       // use md5 checksum to check for similarity
   bool usesha1 = false;      // use sha1 checksum to check for similarity
   bool usesha256 = false;    // use sha256 checksum to check for similarity
@@ -176,6 +180,12 @@ parseOptions(Parser& parser)
       o.remove_identical_inode = parser.get_parsed_bool();
     } else if (parser.try_parse_bool("-deterministic")) {
       o.deterministic = parser.get_parsed_bool();
+    } else if (parser.try_parse_string("-partialchecksum")) {
+      const int partialchecksumsize = std::stoi(parser.get_parsed_string());
+      if (partialchecksumsize < 0) {
+        throw std::runtime_error("negative value of partialchecksum not allowed");
+      }
+      o.partialchecksum = partialchecksumsize;
     } else if (parser.try_parse_string("-checksum")) {
       if (parser.parsed_string_is("md5")) {
         o.usemd5 = true;
@@ -414,7 +424,8 @@ main(int narg, const char* argv[])
               << it->second << ": " << std::flush;
 
     // read bytes (destroys the sorting, for disk reading efficiency)
-    gswd.fillwithbytes(it[0].first, it[-1].first, o.nsecsleep, o.buffersize);
+    gswd.fillwithbytes(
+      it[0].first, it[-1].first, o.nsecsleep, o.buffersize, o.partialchecksum);
 
     // remove non-duplicates
     std::cout << "removed " << gswd.removeUniqSizeAndBuffer()
